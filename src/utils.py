@@ -40,6 +40,5 @@ Examples:
 
 Notes: 
     Currently, this program can only embed ascii characters into input_image. 
-    User must specify the output_image to be a .png file when the input_image is not a .png file
     """)
 
