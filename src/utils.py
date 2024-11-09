@@ -1,4 +1,4 @@
-import sys
+import sys,os
 
 def check_file_exit(filename): 
     if (os.path.isfile(filename)): 
