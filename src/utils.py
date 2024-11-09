@@ -26,7 +26,8 @@ def get_capacity(name):
     img = cv.imread(name)
     row, col, ch = img.shape 
 
-    available_bytes = row * col * ch // 8000 
+    total_bytes = row * col * ch // 8  
+    available_bytes = (total_bytes - len(np.binary_repr(total_bytes)))//1000
     print(f"{name} can contain {available_bytes} KB of text")
 
 def check_sanity(length_bit_string):
@@ -93,7 +94,7 @@ def encode_message(img, new_img, message):
 
     img = cv.merge((new_blue, new_green, new_red))
 
-    cv.imwrite(new_img, img)
+    cv.imwrite(new_img, img,[cv.IMWRITE_PNG_COMPRESSION, 9])
 
     return
 
