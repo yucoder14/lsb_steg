@@ -8,6 +8,7 @@ from utils import *
 class Mode(Enum): 
     encode = 1
     decode = 2
+    mapout = 3
 
 def check_file_exit(filename): 
     if (os.path.isfile(filename)): 
@@ -25,7 +26,7 @@ def main():
     mode = None
 
     try:
-        optlist, args = getopt.getopt(argv, 'e:d:o:i:h')
+        optlist, args = getopt.getopt(argv, 'e:d:o:i:hm:')
     except getopt.GetoptError as err:
         print(str(err))
         sys.exit(2)
@@ -37,6 +38,9 @@ def main():
         elif arg in ['-d']: 
             mode = Mode.decode
             input_png = val 
+        elif arg in ['-m']:
+            mode = Mode.mapout
+            input_png = val
         elif arg in ['-i']:
             input_msg = val
         elif arg in ['-o']:
@@ -58,8 +62,9 @@ def main():
 
         encode_message(input_png, output_png, input_msg)
     elif mode == Mode.decode:        
-        length = input("enter message length: ")
-        decode_message(input_png, int(length))
+        decode_message(input_png)
+    elif mode == Mode.mapout: 
+        get_capacity(input_png)
     else: 
         print("no modes")
 

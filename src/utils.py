@@ -1,6 +1,6 @@
 import numpy as np
 import cv2 as cv
-from chartobits import BitStream
+from chartobits import *
 
 def bit_splice(ch):  
     bit_planes = []
@@ -22,6 +22,33 @@ def show_bit_planes(arr):
     for i, plane in enumerate(arr):
         cv.imshow(f"{i}",plane*255)
 
+def get_capacity(name):
+    img = cv.imread(name)
+    row, col, ch = img.shape 
+
+    available_bytes = row * col * ch // 8000 
+    print(f"{name} can contain {available_bytes} KB of text")
+
+def check_sanity(length_bit_string):
+    """ 
+        Sanity Check to show that length_bit_string correctly encodes the content length
+
+        returns the decoded length of secret message from length_bit_string
+    """
+    char = 0  
+    letters = []
+    for i, bit in enumerate(BitStream(length_bit_string)):
+        char = char ^ (bit << (6-(i%7)))
+        if (i + 1) % 7 == 0: 
+            letters.append(int(char))
+            char = 0
+
+    length = 0
+    for i,bit in (enumerate(reversed(letters))): 
+       length = length ^ (bit << i)
+
+    return length
+
 def encode_message(img, new_img, message): 
     img = cv.imread(img)
     row, col, ch = img.shape 
@@ -29,10 +56,16 @@ def encode_message(img, new_img, message):
     with open(message, 'r') as file: 
         content = file.read()
 
-    available_bytes = row * col * ch // 8 
+    total_bytes = row * col * ch // 8  
+    length_bit_string = prepend_zeros(total_bytes, len(content))
+    length_str = np.binary_repr(total_bytes)
+
+    assert len(length_bit_string) ==  len(length_str), "these numbers should be equal"
+
+    available_bytes = total_bytes - len(length_str)
     assert len(content) <= available_bytes, "secret file too big!" 
 
-    secret = BitStream(content)
+    assert check_sanity(length_bit_string) == len(content), "these numbers should be equal"
 
     blue, green, red = cv.split(img)
 
@@ -40,11 +73,9 @@ def encode_message(img, new_img, message):
     green_bit_planes = bit_splice(green)
     red_bit_planes = bit_splice(red)
 
-    b_coor = 0
-    g_coor = 0
-    r_coor = 0
+    b_coor, g_coor, r_coor = 0, 0, 0
 
-    for i, bit in enumerate(secret):
+    for i, bit in enumerate(BitStream(length_bit_string + content)):
         match i % 3: 
             case 0: 
                 blue_bit_planes[0][b_coor // col][b_coor % col] = bit 
@@ -66,9 +97,12 @@ def encode_message(img, new_img, message):
 
     return
 
-def decode_message(img, message_length): 
+def decode_message(img): 
     img = cv.imread(img)
     row, col, ch = img.shape 
+
+    total_bytes = row * col * ch // 8
+    length_str = len(np.binary_repr(total_bytes))
 
     blue, green, red = cv.split(img)
 
@@ -76,15 +110,40 @@ def decode_message(img, message_length):
     green_bit_planes = bit_splice(green)
     red_bit_planes = bit_splice(red)
 
-    b_coor = 0
-    g_coor = 0
-    r_coor = 0
+    b_coor, g_coor, r_coor = 0, 0, 0
+
+    """ 
+        decode length 
+    """
+    char = 0  
+    letters = []
+    for i in range(length_str * 7): 
+        bit = 0
+        match i % 3: 
+            case 0: 
+                bit = blue_bit_planes[0][b_coor // col][b_coor % col]  
+                b_coor = b_coor + 1
+            case 1: 
+                bit = green_bit_planes[0][g_coor // col][g_coor % col]  
+                g_coor = g_coor + 1
+            case 2: 
+                bit = red_bit_planes[0][r_coor // col][r_coor % col] 
+                r_coor = r_coor + 1
+        char = char ^ (bit << (6-(i%7)))
+        if (i + 1) % 7 == 0: 
+            letters.append(int(char))
+            char = 0
+
+    assert length_str == len(letters), "These numbers should be equal" 
+
+    length = 0
+    for i,bit in (enumerate(reversed(letters))): 
+       length = length ^ (bit << i)
     
     char = 0 
-
     letters = []
-    
-    for i in range(message_length * 8): 
+    offset = length_str * 7  # we have already iterated this much through the bits
+    for i in range(offset, length * 7 + offset): 
         bit = 0
         match i % 3: 
             case 0: 
