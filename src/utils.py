@@ -1,166 +1,45 @@
-import numpy as np
-import cv2 as cv
-from chartobits import *
+import sys
 
-def bit_splice(ch):  
-    bit_planes = []
-    for j in range(8): 
-        b_plane = np.bitwise_and(2**j,ch)
-        shifted = b_plane >> j
-        bit_planes.append(shifted)        
-    return bit_planes
+def check_file_exit(filename): 
+    if (os.path.isfile(filename)): 
+        return
+    else: 
+        print(f"file {filename} does not exist")
+        sys.exit(2)
 
-def merge_bit_planes(row, col, bit_planes): 
-    new_ch = np.zeros((row,col), dtype=np.uint8)
+def check_if_image(filename): 
+    acceptable = ["bmp","dib","jpeg","jpg","jpe","jp2","png","webp","pbm","pgm","ppm","pxm","pnm","sr","ras","tiff","tif","exr","hdr","pic"]
+    if (filename.split(".")[-1] in acceptable): 
+        return
+    else: 
+        print(f"file {filename} is not an image")
+        sys.exit(2)
 
-    for i, plane in enumerate(bit_planes): 
-        new_ch = np.bitwise_or(new_ch, plane << i)
+def sterilize_string(filename): 
+    lossy = ["dib","jpeg","jpg","jpe","jp2","webp","pbm","pgm","ppm","pxm","pnm","sr","ras","tif","exr","hdr","pic"]
+    name_array = filename.split(".") 
+    if (name_array[-1] in lossy): 
+        return name_array[0] + ".png"
+    else: 
+        return filename
 
-    return new_ch
+def usage(): 
+    print("""Usage: python3 lsb_steg.py [<mode> input_image] [-i input_file] [-o output_image] 
 
-def show_bit_planes(arr): 
-    for i, plane in enumerate(arr):
-        cv.imshow(f"{i}",plane*255)
+Modes:
+    -h      Help mode. This mode does not take any arugments
+    -m      Mapout mode. Calculates the 
+    -e      Encode mode. Encodes input_file into the input_image
+    -d      Decode mode. Decodes the stegged image to retreive secret message
 
-def get_capacity(name):
-    img = cv.imread(name)
-    row, col, ch = img.shape 
+Examples: 
+    python3 lsb_steg.py -m input_image.png
+    python3 lsb_steg.py -e input_image.png -i input_file.txt
+    python3 lsb_steg.py -e input_image.jpg -i input_file.txt -o output_image.png
+    python3 lsb_steg.py -d input_image.png 
 
-    total_bytes = row * col * ch // 8  
-    available_bytes = (total_bytes - len(np.binary_repr(total_bytes)))//1000
-    print(f"{name} can contain {available_bytes} KB of text")
+Notes: 
+    Currently, this program can only embed ascii characters into input_image. 
+    User must specify the output_image to be a .png file when the input_image is not a .png file
+    """)
 
-def check_sanity(length_bit_string):
-    """ 
-        Sanity Check to show that length_bit_string correctly encodes the content length
-
-        returns the decoded length of secret message from length_bit_string
-    """
-    char = 0  
-    letters = []
-    for i, bit in enumerate(BitStream(length_bit_string)):
-        char = char ^ (bit << (6-(i%7)))
-        if (i + 1) % 7 == 0: 
-            letters.append(int(char))
-            char = 0
-
-    length = 0
-    for i,bit in (enumerate(reversed(letters))): 
-       length = length ^ (bit << i)
-
-    return length
-
-def encode_message(img, new_img, message): 
-    img = cv.imread(img)
-    row, col, ch = img.shape 
-
-    with open(message, 'r') as file: 
-        content = file.read()
-
-    total_bytes = row * col * ch // 8  
-    length_bit_string = prepend_zeros(total_bytes, len(content))
-    length_str = np.binary_repr(total_bytes)
-
-    assert len(length_bit_string) ==  len(length_str), "these numbers should be equal"
-
-    available_bytes = total_bytes - len(length_str)
-    assert len(content) <= available_bytes, "secret file too big!" 
-
-    assert check_sanity(length_bit_string) == len(content), "these numbers should be equal"
-
-    blue, green, red = cv.split(img)
-
-    blue_bit_planes = bit_splice(blue)
-    green_bit_planes = bit_splice(green)
-    red_bit_planes = bit_splice(red)
-
-    b_coor, g_coor, r_coor = 0, 0, 0
-
-    for i, bit in enumerate(BitStream(length_bit_string + content)):
-        match i % 3: 
-            case 0: 
-                blue_bit_planes[0][b_coor // col][b_coor % col] = bit 
-                b_coor = b_coor + 1
-            case 1: 
-                green_bit_planes[0][g_coor // col][g_coor % col] = bit 
-                g_coor = g_coor + 1
-            case 2: 
-                red_bit_planes[0][r_coor // col][r_coor % col] = bit
-                r_coor = r_coor + 1
-
-    new_blue = merge_bit_planes(row, col, blue_bit_planes)
-    new_green = merge_bit_planes(row, col, green_bit_planes)
-    new_red = merge_bit_planes(row, col, red_bit_planes)
-
-    img = cv.merge((new_blue, new_green, new_red))
-
-    cv.imwrite(new_img, img,[cv.IMWRITE_PNG_COMPRESSION, 9])
-
-    return
-
-def decode_message(img): 
-    img = cv.imread(img)
-    row, col, ch = img.shape 
-
-    total_bytes = row * col * ch // 8
-    length_str = len(np.binary_repr(total_bytes))
-
-    blue, green, red = cv.split(img)
-
-    blue_bit_planes = bit_splice(blue)
-    green_bit_planes = bit_splice(green)
-    red_bit_planes = bit_splice(red)
-
-    b_coor, g_coor, r_coor = 0, 0, 0
-
-    """ 
-        decode length 
-    """
-    char = 0  
-    letters = []
-    for i in range(length_str * 7): 
-        bit = 0
-        match i % 3: 
-            case 0: 
-                bit = blue_bit_planes[0][b_coor // col][b_coor % col]  
-                b_coor = b_coor + 1
-            case 1: 
-                bit = green_bit_planes[0][g_coor // col][g_coor % col]  
-                g_coor = g_coor + 1
-            case 2: 
-                bit = red_bit_planes[0][r_coor // col][r_coor % col] 
-                r_coor = r_coor + 1
-        char = char ^ (bit << (6-(i%7)))
-        if (i + 1) % 7 == 0: 
-            letters.append(int(char))
-            char = 0
-
-    assert length_str == len(letters), "These numbers should be equal" 
-
-    length = 0
-    for i,bit in (enumerate(reversed(letters))): 
-       length = length ^ (bit << i)
-    
-    char = 0 
-    letters = []
-    offset = length_str * 7  # we have already iterated this much through the bits
-    for i in range(offset, length * 7 + offset): 
-        bit = 0
-        match i % 3: 
-            case 0: 
-                bit = blue_bit_planes[0][b_coor // col][b_coor % col]  
-                b_coor = b_coor + 1
-            case 1: 
-                bit = green_bit_planes[0][g_coor // col][g_coor % col]  
-                g_coor = g_coor + 1
-            case 2: 
-                bit = red_bit_planes[0][r_coor // col][r_coor % col] 
-                r_coor = r_coor + 1
-        char = char ^ (bit << (6-(i%7)))
-        if (i + 1) % 7 == 0: 
-            letters.append(chr(char))
-            char = 0
-
-    print("".join(letters))
-
-    return
