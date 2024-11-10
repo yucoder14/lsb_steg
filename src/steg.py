@@ -70,29 +70,18 @@ def encode_message(img, new_img, message):
 
     blue, green, red = cv.split(img)
 
-    blue_bit_planes = bit_splice(blue)
-    green_bit_planes = bit_splice(green)
-    red_bit_planes = bit_splice(red)
-
-    b_coor, g_coor, r_coor = 0, 0, 0
+    ch_bit_planes = [bit_splice(blue), bit_splice(green), bit_splice(red)]
+    ch_coor = [0, 0, 0]
 
     for i, bit in enumerate(BitStream(length_bit_string + content)):
-        match i % 3: 
-            case 0: 
-                blue_bit_planes[0][b_coor // col][b_coor % col] = bit 
-                b_coor = b_coor + 1
-            case 1: 
-                green_bit_planes[0][g_coor // col][g_coor % col] = bit 
-                g_coor = g_coor + 1
-            case 2: 
-                red_bit_planes[0][r_coor // col][r_coor % col] = bit
-                r_coor = r_coor + 1
+        lsb_bit_plane = ch_bit_planes[i % 3][0]    
+        bit_coor = ch_coor[i % 3]
+        lsb_bit_plane[bit_coor // col][bit_coor % col] = bit
+        ch_coor[i % 3] = ch_coor[i % 3] + 1
 
-    new_blue = merge_bit_planes(row, col, blue_bit_planes)
-    new_green = merge_bit_planes(row, col, green_bit_planes)
-    new_red = merge_bit_planes(row, col, red_bit_planes)
+    new_chs = [merge_bit_planes(row, col, ch_bit_plane) for ch_bit_plane in ch_bit_planes]
 
-    img = cv.merge((new_blue, new_green, new_red))
+    img = cv.merge(new_chs)
 
     cv.imwrite(new_img, img,[cv.IMWRITE_PNG_COMPRESSION, 9])
 
@@ -107,11 +96,8 @@ def decode_message(img):
 
     blue, green, red = cv.split(img)
 
-    blue_bit_planes = bit_splice(blue)
-    green_bit_planes = bit_splice(green)
-    red_bit_planes = bit_splice(red)
-
-    b_coor, g_coor, r_coor = 0, 0, 0
+    ch_bit_planes = [bit_splice(blue), bit_splice(green), bit_splice(red)]
+    ch_coor = [0, 0, 0]
 
     """ 
         decode length 
@@ -120,17 +106,13 @@ def decode_message(img):
     letters = []
     for i in range(length_str * 7): 
         bit = 0
-        match i % 3: 
-            case 0: 
-                bit = blue_bit_planes[0][b_coor // col][b_coor % col]  
-                b_coor = b_coor + 1
-            case 1: 
-                bit = green_bit_planes[0][g_coor // col][g_coor % col]  
-                g_coor = g_coor + 1
-            case 2: 
-                bit = red_bit_planes[0][r_coor // col][r_coor % col] 
-                r_coor = r_coor + 1
+        lsb_bit_plane = ch_bit_planes[i % 3][0]
+        bit_coor = ch_coor[i % 3]
+
+        bit = lsb_bit_plane[bit_coor // col][bit_coor % col]
         char = char ^ (bit << (6-(i%7)))
+        ch_coor[i % 3] = ch_coor[i % 3] + 1
+
         if (i + 1) % 7 == 0: 
             letters.append(int(char))
             char = 0
@@ -143,20 +125,16 @@ def decode_message(img):
     
     char = 0 
     letters = []
-    offset = length_str * 7  # we have already iterated this much through the bits
+    offset = length_str * 7  # we have already iterated this much through the pixels
     for i in range(offset, length * 7 + offset): 
         bit = 0
-        match i % 3: 
-            case 0: 
-                bit = blue_bit_planes[0][b_coor // col][b_coor % col]  
-                b_coor = b_coor + 1
-            case 1: 
-                bit = green_bit_planes[0][g_coor // col][g_coor % col]  
-                g_coor = g_coor + 1
-            case 2: 
-                bit = red_bit_planes[0][r_coor // col][r_coor % col] 
-                r_coor = r_coor + 1
+        lsb_bit_plane = ch_bit_planes[i % 3][0]
+        bit_coor = ch_coor[i % 3]
+
+        bit = lsb_bit_plane[bit_coor // col][bit_coor % col]
         char = char ^ (bit << (6-(i%7)))
+        ch_coor[i % 3] = ch_coor[i % 3] + 1
+
         if (i + 1) % 7 == 0: 
             letters.append(chr(char))
             char = 0
