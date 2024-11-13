@@ -3,6 +3,21 @@
 
 What is steganography? Steganography is the act of concealing an article, such as a message, image, or file within another message. This repository embarks on a step by step process demonstrating how you would go about implementing LSB stegonagraphy which is a specific variation of steganography that takes advantage of the fact that the least significant bits of the pixel values in an image can be altered without affecting the visual appearance of that image.
 
+
+## Demonstration
+--- 
+Consider the following image: 
+    <img src="assets/carleton.png" alt="before and after decoding" width="600px"/>
+
+The above image has not been tampered with in any way. 
+
+Now consider the following image: 
+    <img src="assets/steg_carleton.png" alt="before and after decoding" width="600px"/>
+
+The above image contains the source code of our program.
+
+Can you spot the difference? 
+
 ### Running the program:
 Modules used:
 ```
