@@ -7,12 +7,14 @@ What is steganography? Steganography is the act of concealing an article, such a
 ## Demonstration
 --- 
 Consider the following image: 
-    <img src="assets/carleton.png" alt="before and after decoding" width="600px"/>
+
+    <img src="assets/carleton.png" alt="before encoding" width="600px"/>
 
 The above image has not been tampered with in any way. 
 
 Now consider the following image: 
-    <img src="assets/steg_carleton.png" alt="before and after decoding" width="600px"/>
+
+    <img src="assets/steg_carleton.png" alt="after encoding" width="600px"/>
 
 The above image contains the source code of our program.
 
