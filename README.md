@@ -8,13 +8,13 @@ What is steganography? Steganography is the act of concealing an article, such a
 --- 
 Consider the following image: 
 
-    <img src="assets/carleton.png" alt="before encoding" width="600px"/>
+<img src="assets/carleton.png" alt="before encoding" width="600px"/>
 
 The above image has not been tampered with in any way. 
 
 Now consider the following image: 
 
-    <img src="assets/steg_carleton.png" alt="after encoding" width="600px"/>
+<img src="assets/steg_carleton.png" alt="after encoding" width="600px"/>
 
 The above image contains the source code of our program.
 
@@ -76,7 +76,7 @@ LSB Steganography consists of taking advantage of the fact that the least signif
 4. Once we have our 2x2x3 array, we want to split it into 3 independent 2d arrays (1 array for each channel, r, g, b) and split those arrays into 8 bit planes, where each plane is 2x2 (height x width) and represents 1 bit of the specified channel's color value.
 
 
-    <img src="assets/24planes.png" alt="24 bit planes" width="600px"/>
+<img src="assets/24planes.png" alt="24 bit planes" width="600px"/>
 
 <!-- Styling Start: IGNORE -->
 <!-- <style>
@@ -145,7 +145,7 @@ LSB Steganography consists of taking advantage of the fact that the least signif
 
 5. Once we have these bit planes we encode our length concatonated with our message into the bits of the bottom-most plane (since this is where the LSB of each channel resides). To be more precise: we start at the top left corner of the bottom-most plane and cycle through the bits of all three channels (one bit at a time), ensuring that each bit of the message is distributed evenly across all three channels during the encoding process.
 
-    <img src="assets/enc-dec.png" alt="before and after decoding" width="600px"/>
+<img src="assets/enc-dec.png" alt="before and after decoding" width="600px"/>
 
 <!-- <span style="font-weight: bold">&emsp;&emsp;Before encoding "01001001"</span>
 <div style="display: flex; padding-left: calc(2% + 40px); width: 400px;">
