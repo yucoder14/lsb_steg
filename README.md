@@ -162,6 +162,9 @@ We calculate the capacity for the image very naively. We take the product of the
 
 Overall this measurement is reasonable, but it does not account for factors that can affect capacity, such as the actual content of the image, and the presence of informative vs noisy . Accounting for these factors in the calculation and encoding may help to minimize areas that may be more susceptible to distortion from overloading the image's least significant bits.
 
+### Image Compressions and Data Loss
+Different image files have different compression algorithms. However, there are two general categories of compressions: lossless and lossy compression. Image files like png support lossless compression. In a lossless compression, no data is lost upon compressing the image. In other words, we can encode some arbitrary data into the image and expect it to be retained through the compression algorithm. Thus, image files that supports lossless compression are suitable for digital steganography. In contrast, image files like jpg support lossy compression, where some data is lost upon compression. Thus, image files that only supports lossy compressions are not suitable for digital steganography. 
+
 ## Final Thoughts on Steganography:
 ---
 
